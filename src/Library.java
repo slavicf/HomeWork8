@@ -4,7 +4,7 @@ import java.util.concurrent.Semaphore;
 
 public class Library {
 
-    static Random rnd = new Random(); //  declarations
+    static Random rnd = new Random();
     static Semaphore semLib;
     static Semaphore semDoor = new Semaphore(1);
 
