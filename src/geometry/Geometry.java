@@ -10,16 +10,17 @@ import javafx.stage.Stage;
 
 import java.util.Random;
 
-public class Geometry extends Application{
+public class Geometry extends Application {
 
     private static final double WIDTH = 800;               // Ширина окна
     private static final double HEIGHT = 600;               // Высота окна
     private static final double BUTTON_WIDTH = 100;         // Ширина кнопки
     private static final double BUTTON_HEIGHT = 20;         // Высота кнопки
     private static final int COLOR_SPAN = 200;              // Диапазон 0-255 умылшенно срезан для получения более тёмных цветов
-    static Random rnd = new Random();
+    private static Random rnd = new Random();
+    private static boolean multiThreadOn = false;
 
-    private static Shapes<Rectang> rectangles = new Shapes<>();
+    private static Shapes<Rectang> rectangles;
 
     public static void main(String[] args) {
         launch(args);
@@ -53,65 +54,66 @@ public class Geometry extends Application{
 
         Button btn1 = button("Multy Threads", 10, 10);
         btn1.setOnAction(event -> {
-            int rectNum = 3 + rnd.nextInt(7);
-            for (int i = 0; i <rectNum; i++){
-                Paint color = generateColor();
-                double width = 50 + rnd.nextInt(100);
-                double height = 50 + rnd.nextInt(100);
-                double x = rnd.nextInt(1000);
-                double y = rnd.nextInt(800);
-                Rectang rectang = new Rectang(x, y, width, height, color);
-                rectangles.set.add(rectang);
-                pane.getChildren().add(rectang.rectangle);
-                new Thread(() -> {
-                    try {
-                        animate(rectang);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
+            multiThreadOn = !multiThreadOn;
+            pane.getChildren().clear();
+            rectangles = new Shapes<>();
+            if (multiThreadOn) {
+                int rectNum = 3 + rnd.nextInt(7);
+                for (int i = 0; i < rectNum; i++) {
+                    Rectang rectang = createRectang();
+                    pane.getChildren().add(rectang.rectangle);
+                    new Thread(() -> {
+                        try {
+                            animate(rectang);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }).start();
+                }
             }
         });
 
         root.getChildren().addAll(btn1);
     }
 
-    static void animate(Rectang rectang) throws InterruptedException {
-        double inc = 5;
+    Rectang createRectang() {
+        Paint color = generateColor();
+        double width = 50 + rnd.nextInt(100);
+        double height = 50 + rnd.nextInt(100);
+        double x = rnd.nextInt((int) (WIDTH - width));
+        double y = rnd.nextInt((int) (HEIGHT - height));
+        Rectang rectang = new Rectang(x, y, width, height, color);
+        rectangles.set.add(rectang);
+        return rectang;
+    }
+
+    void animate(Rectang rectang) throws InterruptedException {
+        double inc = 10;
         int mills = 200;
 
-        while (true) {
+        while (multiThreadOn) {
             double x = rectang.rectangle.getX();
             double y = rectang.rectangle.getY();
             double width = rectang.rectangle.getWidth();
             double height = rectang.rectangle.getHeight();
+
             if (rectang.xDn) x += inc;
             else x -= inc;
             if (rectang.yRt) y += inc;
             else y -= inc;
-            if (x < 0){
-                x = 0;
-                rectang.xDn = true;
-            }
-            if (y < 0) {
-                y = 0;
-                rectang.yRt = true;
-            }
-            if (x + width > WIDTH - 1){
-                x = WIDTH - 1 - width;
-                rectang.xDn = false;
-            }
-            if (y + height > HEIGHT - 1){
-                y = HEIGHT - 1 - height;
-                rectang.yRt = false;
-            }
+
+            if (x < 0) rectang.xDn = true;
+            if (y < 0) rectang.yRt = true;
+            if (x + width > WIDTH) rectang.xDn = false;
+            if (y + height > HEIGHT) rectang.yRt = false;
+
             rectang.rectangle.setX(x);
             rectang.rectangle.setY(y);
             Thread.sleep(mills);
         }
     }
 
-        @Override
+    @Override
     public void start(Stage primaryStage) throws Exception {
         Pane root = new Pane();
         Scene scene = new Scene(root, WIDTH, HEIGHT);
